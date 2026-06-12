@@ -78,9 +78,13 @@ export class SSHSession {
         const { done, value } = await reader.read();
         if (done) break;
 
+        console.log('Received data, state:', this.state, 'length:', value.length);
+
         if (this.state === 'version') {
           const versionStr = decoder.decode(value);
+          console.log('Version exchange:', versionStr.substring(0, 50));
           if (this.transport.handleVersionExchange(versionStr)) {
+            console.log('Version exchange complete, starting KEX');
             this.state = 'kex';
             await this.startKEX();
           }
@@ -90,6 +94,7 @@ export class SSHSession {
         }
       }
     } catch (error) {
+      console.error('SSH reading error:', error);
       this.ws.send(JSON.stringify({
         type: 'error',
         message: 'SSH 连接断开'
@@ -124,6 +129,7 @@ export class SSHSession {
 
   private async processPackets(): Promise<void> {
     const blockSize = this.decryptCipher ? 16 : 8;
+    console.log('Processing packets, blockSize:', blockSize);
 
     while (true) {
       const packet = this.packetParser.nextPacket(
@@ -134,6 +140,7 @@ export class SSHSession {
       );
 
       if (!packet) break;
+      console.log('Got packet, payload length:', packet.payload.length, 'first byte:', packet.payload[0]);
 
       await this.handlePacket(packet);
     }
