@@ -73,7 +73,12 @@
           <h1 class="text-2xl font-bold text-primary-container tracking-tighter cursor-pointer">CloudSSH</h1>
         </div>
         <div class="flex items-center gap-4 text-primary-container">
-          <button id="disconnect-btn" class="hover:opacity-80 transition-opacity cursor-pointer p-1 flex items-center justify-center">
+          <select id="theme-selector" class="bg-surface-variant text-on-surface-variant text-xs py-1 px-2 border-none outline-none cursor-pointer rounded">
+            <option value="cyberpunk">Cyberpunk</option>
+            <option value="glacier">Glacier</option>
+            <option value="gruvbox">Gruvbox</option>
+          </select>
+          <button id="disconnect-btn" class="hover:opacity-80 transition-opacity cursor-pointer p-1 flex items-center justify-center" title="Disconnect">
             <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">power_settings_new</span>
           </button>
         </div>

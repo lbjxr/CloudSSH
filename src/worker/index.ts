@@ -3,11 +3,32 @@ import { HTML } from './html';
 
 export { SSHSessionDO } from './durable-object';
 
+// --- Rate Limiting (per-edge-node, best-effort) ---
+const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
+const RATE_LIMIT_MAX = 10;      // max requests per window
+const RATE_LIMIT_WINDOW = 60000; // 1 minute window
+
+function isRateLimited(ip: string): boolean {
+  const now = Date.now();
+  const entry = rateLimitMap.get(ip);
+  if (!entry || now > entry.resetTime) {
+    rateLimitMap.set(ip, { count: 1, resetTime: now + RATE_LIMIT_WINDOW });
+    return false;
+  }
+  entry.count++;
+  return entry.count > RATE_LIMIT_MAX;
+}
+
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
 
     if (url.pathname === '/api/ssh') {
+      // Apply rate limiting
+      const clientIP = request.headers.get('CF-Connecting-IP') || 'unknown';
+      if (isRateLimited(clientIP)) {
+        return new Response('Too Many Requests', { status: 429 });
+      }
       return handleSSHConnection(request, env);
     }
 

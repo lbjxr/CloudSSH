@@ -44,6 +44,8 @@ export interface SSHConnectionConfig {
   port: number;
   username: string;
   password: string;
+  authMethod?: 'password' | 'publickey';
+  privateKey?: string;
 }
 
 export interface Env {

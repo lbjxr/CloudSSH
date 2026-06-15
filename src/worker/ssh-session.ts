@@ -64,18 +64,39 @@ export class SSHSession {
 
   private state: 'connecting' | 'version' | 'kex' | 'auth' | 'shell' | 'ready'
     = 'connecting';
+  private hostKeyFingerprint: string = '';
 
   private versionRawBuffer: Uint8Array = new Uint8Array(0);
   private negotiatedCipherC2S: string = 'aes256-gcm@openssh.com';
   private negotiatedCipherS2C: string = 'aes256-gcm@openssh.com';
 
-  constructor(ws: WebSocket, socket: any, config: SSHConnectionConfig) {
+  public readonly roamId: string;
+
+  constructor(
+    ws: WebSocket,
+    socket: any,
+    config: SSHConnectionConfig
+  ) {
     this.ws = ws;
     this.socket = socket;
     this.config = config;
+    this.roamId = crypto.randomUUID();
+
     this.transport = new SSHTransport();
     this.packetParser = new SSHPacketParser();
     this.channel = new SSHChannel();
+  }
+
+  updateWebSocket(ws: WebSocket): void {
+    this.ws = ws;
+    try {
+      this.ws.send(JSON.stringify({ type: 'roamId', roamId: this.roamId }));
+    } catch {}
+    if (this.state === 'ready') {
+      try {
+        this.ws.send(JSON.stringify({ type: 'status', message: '会话已恢复' }));
+      } catch {}
+    }
   }
 
   async startHandshake(): Promise<void> {
@@ -335,6 +356,7 @@ export class SSHSession {
 
         await this.enableEncryption();
         this.sendDebug('Encryption enabled');
+
         this.state = 'auth';
         try {
           await this.sendServiceRequest();
@@ -382,6 +404,12 @@ export class SSHSession {
     );
     const hHex = Array.from(H).map(b => b.toString(16).padStart(2, '0')).join('');
     this.sendDebug(`Exchange hash H=${hHex}`);
+
+    // Compute host key fingerprint (SHA-256)
+    const fpHash = new Uint8Array(await crypto.subtle.digest('SHA-256', hostKey));
+    this.hostKeyFingerprint = 'SHA256:' + btoa(String.fromCharCode(...fpHash)).replace(/=+$/, '');
+    this.sendStatus(`服务器指纹: ${this.hostKeyFingerprint}`);
+    this.sendDebug(`Host key fingerprint: ${this.hostKeyFingerprint}`);
 
     // Verify host key signature to confirm exchange hash is correct
     try {
@@ -570,10 +598,21 @@ export class SSHSession {
   }
 
   private async authenticate(): Promise<void> {
-    const authRequest = SSHAuth.buildPasswordAuthRequest(
-      this.config.username,
-      this.config.password
-    );
+    let authRequest: Uint8Array;
+
+    if (this.config.authMethod === 'publickey' && this.config.privateKey) {
+      this.sendStatus('正在使用密钥认证...');
+      authRequest = await SSHAuth.buildPublicKeyAuthRequest(
+        this.config.username,
+        this.config.privateKey,
+        this.sessionID!
+      );
+    } else {
+      authRequest = SSHAuth.buildPasswordAuthRequest(
+        this.config.username,
+        this.config.password
+      );
+    }
 
     const packet = await SSHPacketBuilder.build(
       authRequest, 16,

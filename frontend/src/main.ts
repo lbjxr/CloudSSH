@@ -13,6 +13,11 @@ document.getElementById('disconnect-btn')?.addEventListener('click', () => {
   document.getElementById('status-text')!.innerHTML = '<span class="w-2 h-2 bg-[#353534] inline-block"></span> STATUS: OFFLINE';
 });
 
+document.getElementById('theme-selector')?.addEventListener('change', (e) => {
+  const theme = (e.target as HTMLSelectElement).value as any;
+  terminal.setTheme(theme);
+});
+
 // Set current year for copyright
 const copyrightYearSpan = document.getElementById('copyright-year');
 if (copyrightYearSpan) {
