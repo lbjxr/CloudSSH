@@ -57,16 +57,19 @@
 ### Secure and Reliable
 
 - **End-to-End Encryption**: Complete implementation of the SSH-2.0 protocol, including ECDH key exchange, Ed25519 signature authentication, and AES-256-GCM data encryption.
+- **Security Hardening**: Built-in SSRF protection against IPv6 and reserved IPs, API rate limiting (anti-brute force), and local AES-GCM encryption for your stored server credentials.
 - **Isolated Session State**: Leveraging Cloudflare Durable Objects and the Hibernation API, every terminal session runs securely and persistently within its sandbox.
 
 <a id="features"></a>
 ## Features
 
 - **Full SSH Handshake**: Native TypeScript implementation of the SSH transport layer and user authentication protocols.
-- **Password Authentication**: Supports standard SSH password authentication.
-- **Full-Featured Terminal**: Based on `xterm.js`, supporting color output and adaptive window resizing (Window Adjust).
-- **Persistent Connections**: Built on the Durable Objects WebSocket Hibernation API, maintaining long-lived stable SSH connections with Keepalive support.
-- **Responsive UI**: Beautiful login panel and status bar, fully compatible with mobile access.
+- **Multiple Auth Methods**: Supports standard SSH password authentication as well as Ed25519 plaintext private key authentication.
+- **MitM Protection (TOFU)**: Automatically extracts and prints the server's Host Key (SHA-256 fingerprint) on the first connection, preventing eavesdropping by malicious nodes.
+- **Geek Terminal Experience**: Powered by `@xterm/xterm` and the `@xterm/addon-webgl` hardware acceleration rendering engine, ensuring silky smooth scrolling even with massive log outputs.
+- **Customizable UI**: Switch seamlessly between classic terminal themes like Cyberpunk, Glacier, and Gruvbox, fully optimized for mobile devices.
+- **Native File Transfer**: Integrated with `zmodem.js`. Just run `rz` or `sz` commands in the terminal to easily upload/download files via drag & drop directly in the browser.
+- **Smart Reconnection (Roaming)**: Leverages Durable Objects' memory retention to silently reconnect and restore your session within 15 seconds if your WebSocket disconnects due to network fluctuations or Wi-Fi switching, without needing to re-enter your password.
 
 <a id="architecture"></a>
 ## Architecture
@@ -104,7 +107,7 @@ flowchart TB
 1. **Fork this repository** to your GitHub account.
 2. **Configure Domain**: Before deploying, you must modify the custom domain in `wrangler.toml` to your own domain (Note: The domain must be registered or active in Cloudflare beforehand).
 3. **Setup Deployment**: Log in to the Cloudflare dashboard, go to Workers & Pages to connect your GitHub account, and select the forked repository.
-4. **Build Command**: During the deployment configuration, make sure to enter `cd frontend && npm install && npm run build` as the Build command, then deploy with one click.
+4. **Build Command**: During the deployment configuration, make sure to enter `npm install && npm run build:frontend` as the Build command, then deploy with one click (the build output directory can be left blank).
 
 #### Method 2: Local CLI Deployment
 
